@@ -99,7 +99,7 @@ function animateCollatz() {
 function drawLineGraph() {
     ctx.clearRect(0,0,canvas.width,canvas.height);
 
-    const scaleY = canvas.height / Number(maxVal);
+    const scaleY = canvas.height / Number(maxVal) * 5; // 5x taller pillars
 
     // draw only the part that fits in canvas
     const startIndex = Math.max(0, sequence.length - Math.floor(canvas.width/stepSize));
