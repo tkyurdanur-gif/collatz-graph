@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3x+1 Infinite Scroll Graph</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: #eee;
+    text-align: center;
+    padding: 20px;
+  }
+  input, button {
+    padding: 10px;
+    font-size: 16px;
+    margin: 5px;
+  }
+  canvas {
+    border: 1px solid #eee;
+    margin-top: 20px;
+    background: #222;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+</style>
+</head>
+<body>
+
+<h1>3x+1 (Collatz) Infinite Graph</h1>
+<p>Enter a number or power (e.g., 27 or 2^60):</p>
+<input type="text" id="startNumber" placeholder="Enter number">
+<button onclick="runCollatz()">Run</button>
+<p id="peakValue">Peak Value: 0</p>
+
+<canvas id="collatzCanvas" width="1200" height="400"></canvas>
+
+<script>
+let sequence = [];
+let n;
+let canvas, ctx;
+let maxVal = 1n;
+let scrollOffset = 0;
+const stepSize = 2; // pixels per step
+
+function parseInput(input) {
+    input = input.trim();
+    if(input.includes('^')) {
+        let parts = input.split('^').map(BigInt);
+        return parts[0] ** parts[1]; 
+    }
+    return BigInt(input);
+}
+
+function formatBigInt(x) {
+    if(x < 1_000_000_000_000_000n) return x.toString(); // < quadrillion
+    let exp = BigInt(x.toString().length - 1);
+    return `10^${exp}`;
+}
+
+function runCollatz() {
+    const input = document.getElementById("startNumber").value;
+    if(!input) return alert("Enter a number");
+    try { n = parseInput(input); } 
+    catch(e) { return alert("Invalid input format"); }
+    if(n < 1n) return alert("Number must be ≥1");
+    
+    sequence = [n];
+    maxVal = n;
+    scrollOffset = 0;
+    canvas = document.getElementById("collatzCanvas");
+    ctx = canvas.getContext("2d");
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    document.getElementById("peakValue").innerText = "Peak Value: " + formatBigInt(maxVal);
+
+    animateCollatz();
+}
+
+function animateCollatz() {
+    if(n === 1n) return; // finished (4-2-1)
+    let prev = n;
+    if(n % 2n === 0n) n = n / 2n;
+    else n = 3n * n + 1n;
+
+    sequence.push(n);
+    if(n > maxVal) {
+        maxVal = n;
+        document.getElementById("peakValue").innerText = "Peak Value: " + formatBigInt(maxVal);
+    }
+
+    scrollOffset += stepSize;
+    drawLineGraph();
+
+    setTimeout(animateCollatz, 10); // adjust speed
+}
+
+function drawLineGraph() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+
+    const scaleY = canvas.height / Number(maxVal);
+
+    // draw only the part that fits in canvas
+    const startIndex = Math.max(0, sequence.length - Math.floor(canvas.width/stepSize));
+    for(let i=startIndex+1; i<sequence.length; i++) {
+        let x1 = (i-1-startIndex)*stepSize;
+        let y1 = canvas.height - Number(sequence[i-1])*scaleY;
+        let x2 = (i-startIndex)*stepSize;
+        let y2 = canvas.height - Number(sequence[i])*scaleY;
+        ctx.strokeStyle = sequence[i] > sequence[i-1] ? '#f00' : '#0f0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x1,y1);
+        ctx.lineTo(x2,y2);
+        ctx.stroke();
+    }
+
+    // Highlight 4-2-1 cycle
+    if(sequence.length >= 3) {
+        let len = sequence.length;
+        if(sequence[len-3] === 4n && sequence[len-2] === 2n && sequence[len-1] === 1n) {
+            ctx.fillStyle = '#f00';
+            ctx.font = '16px Arial';
+            ctx.fillText("4-2-1 Cycle starts here", canvas.width*0.1, 20);
+        }
+    }
+}
+</script>
+
+</body>
+</html>
